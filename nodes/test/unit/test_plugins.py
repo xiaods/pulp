@@ -12,7 +12,6 @@
 # http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
 
 import os
-import sys
 import tempfile
 import shutil
 import random
@@ -25,8 +24,6 @@ from base import WebTest
 from nectar.downloaders.curl import HTTPSCurlDownloader
 from nectar.request import DownloadRequest
 from nectar.config import DownloaderConfig
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)) + "/mocks")
 
 from pulp_node.distributors.http.distributor import NodesHttpDistributor
 from pulp_node.importers.http.importer import NodesHttpImporter

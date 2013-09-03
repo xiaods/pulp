@@ -42,10 +42,10 @@ args = [
     '--cover-erase',
     '--cover-package',
     ','.join(PACKAGES),
+    NODES_TESTS,
     TESTS,
     BUILTIN_TESTS,
     DEVEL_TESTS,
-    NODES_TESTS,
 ]
 
 # don't run the server tests in RHEL5.
