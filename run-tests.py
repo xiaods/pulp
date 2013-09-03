@@ -33,6 +33,7 @@ PACKAGES = [
 TESTS = 'platform/test/unit'
 BUILTIN_TESTS = 'builtins/test/unit'
 DEVEL_TESTS = 'pulp_devel/test/unit'
+NODES_TESTS = 'nodes/test/unit'
 
 args = [
     'nosetests',
@@ -44,6 +45,7 @@ args = [
     TESTS,
     BUILTIN_TESTS,
     DEVEL_TESTS,
+    NODES_TESTS,
 ]
 
 # don't run the server tests in RHEL5.
