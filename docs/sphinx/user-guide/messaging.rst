@@ -14,17 +14,23 @@ the Qpid_ and RabbitMQ_ brokers.
 Pulp Configuration
 ==================
 
-The *messaging* section in Pulp configuration files is used configure messaging for the
-Pulp server.  The *url* property is used to specify the location of the broker. The
-*transport* property specifies which transport package (driver) should be used to communicate
-with the selected broker.
+The *messaging* section in Pulp configuration files is used configure messaging. On the server,
+this configuration is specified in `/etc/pulp/server.conf`. And, on the consumer, this configuration
+is specified in `/etc/pulp/consumer/consumer.conf`.
+The **url** property is used to specify the location of the broker. The **transport** property
+specifies which transport package (driver) should be used to communicate with the selected broker.
 
-The URL has the format of: `<protocol>://<host>:<port>` where protocol can be on of: (tcp|ssl).
+The URL has the format of: `<protocol>://<host>:<port>` where protocol may be one of: (tcp|ssl).
 
 Supported transports:
 
-- **qpid** - The Qpid broker.
-- **amqplib** - The RabbitMQ broker.
+- **qpid** - AMQP 0-10, tested with:
+
+  - QPid *(all versions)*
+
+- **amqplib** - AMQP 0-8, tested with:
+
+  - RabbitMQ *(3.1.5)*
 
 The following properties are used to specify the (optional) SSL configuration:
 
@@ -32,7 +38,7 @@ The following properties are used to specify the (optional) SSL configuration:
 - **clientcert** - The path to the client certificate. Must contain both the private key and
   client certificate.
 
-Example:
+Qpid Example:
 
 ::
 
@@ -42,6 +48,15 @@ Example:
    cacert: <path to a CA certificate>
    clientcert: <path to a CA certificate>
 
+RabbitMQ Example:
+
+::
+
+   [messaging]
+   url: amqp://localhost:5672
+   transport: amqplib
+   cacert: <path to a CA certificate>
+   clientcert: <path to a CA certificate>
 
 Qpid
 ====
@@ -102,13 +117,4 @@ Installation
  # chkconfig rabbitmq-server on
 
 
-Recipes
-=======
-
-Changing from Qpid to RabbitMQ
-------------------------------
-
-
-Changing from RabbitMQ to Qpid
--------------------------------
 
