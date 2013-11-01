@@ -16,7 +16,7 @@ import base
 
 from mock import patch
 
-from gofer.messaging import Envelope
+from gofer.messaging.model import Envelope
 
 from pulp.devel import mock_agent
 from pulp.server.agent.hub.pulpagent import PulpAgent as RestAgent

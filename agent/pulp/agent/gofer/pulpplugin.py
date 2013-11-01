@@ -25,10 +25,9 @@ from M2Crypto.X509 import X509Error
 
 from gofer.decorators import *
 from gofer.agent.plugin import Plugin
-from gofer.messaging import Topic
-from gofer.messaging.producer import Producer
 from gofer.pmon import PathMonitor
 from gofer.agent.rmi import Context
+from gofer.messaging import Exchange, Producer, Destination
 
 from pulp.common.bundle import Bundle
 from pulp.common.config import Config
@@ -155,21 +154,6 @@ class Heartbeat:
     Provide agent heartbeat.
     """
 
-    __producer = None
-
-    @classmethod
-    def producer(cls):
-        """
-        Get the cached producer.
-        :return: A producer.
-        :rtype: Producer
-        """
-        if not cls.__producer:
-            broker = plugin.getbroker()
-            url = str(broker.url)
-            cls.__producer = Producer(url=url)
-        return cls.__producer
-
     @remote
     @action(seconds=cfg.heartbeat.seconds)
     def send(self):
@@ -178,14 +162,18 @@ class Heartbeat:
         The delay defines when the next heartbeat
         should be expected.
         """
-        topic = Topic('heartbeat')
+        exchange = Exchange.topic()
+        destination = Destination(exchange.name, 'heartbeat')
         delay = int(cfg.heartbeat.seconds)
         bundle = ConsumerX509Bundle()
         consumer_id = bundle.cn()
         if consumer_id:
-            p = self.producer()
-            body = dict(uuid=consumer_id, next=delay)
-            p.send(topic, ttl=delay, heartbeat=body)
+            p = Producer(url=plugin.geturl())
+            try:
+                body = dict(uuid=consumer_id, next=delay)
+                p.send(destination, ttl=delay, heartbeat=body)
+            finally:
+                p.close()
         return consumer_id
 
 

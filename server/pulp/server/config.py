@@ -60,6 +60,7 @@ _default_values = {
     },
     'messaging': {
         'url': 'tcp://localhost:5672',
+        'transport': 'gofer.transport.qpid',
         'cacert': '/etc/pki/qpid/ca/ca.crt',
         'clientcert': '/etc/pki/qpid/client/client.pem',
         'topic_exchange': 'amq.topic',

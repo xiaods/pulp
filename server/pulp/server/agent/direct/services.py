@@ -15,16 +15,16 @@
 from threading import RLock
 from datetime import datetime as dt
 from datetime import timedelta
+from logging import getLogger
+
+from gofer.transport import Transport
+from gofer.messaging import Consumer, Exchange, Queue
+from gofer.rmi.async import ReplyConsumer, Listener
+from gofer.rmi.async import WatchDog, Journal
+
 from pulp.common import dateutils
 from pulp.server.config import config
 from pulp.server.dispatch import factory
-from gofer.messaging.broker import Broker
-from gofer.messaging import Topic
-from gofer.messaging.consumer import Consumer
-from gofer.messaging import Queue
-from gofer.rmi.async import ReplyConsumer, Listener
-from gofer.rmi.async import WatchDog, Journal
-from logging import getLogger
 
 
 log = getLogger(__name__)
@@ -52,9 +52,13 @@ class Services:
     @classmethod
     def start(cls):
         url = config.get('messaging', 'url')
-        log.info('Using URL: %s', url)
+        transport = config.get('messaging', 'transport')
+        log.info('Using URL: %s and transport: %s', url, transport)
+        # transport initialization
+        Transport.bind(url, transport)
         # broker configuration
-        broker = Broker(url)
+        transport = Transport(url)
+        broker = transport.broker()
         broker.cacert = config.get('messaging', 'cacert')
         broker.clientcert = config.get('messaging', 'clientcert')
         log.info('AMQP broker configured')
@@ -118,15 +122,18 @@ class HeartbeatListener(Consumer):
         cls.__mutex.release()
 
     def __init__(self, url):
-        topic = Topic('heartbeat')
-        Consumer.__init__(self, topic, url=url)
+        key = 'heartbeat'
+        exchange = Exchange.topic(url)
+        queue = Queue('pulp.heartbeat', exchange, routing_key=key, url=url)
+        queue.durable = True
+        queue.declare(url)
+        Consumer.__init__(self, queue, url=url)
 
     def dispatch(self, envelope):
         try:
             self.__update(envelope.heartbeat)
         except:
             log.error(envelope, exec_info=True)
-        self.ack()
 
     def __update(self, body):
         self.__lock()
@@ -150,7 +157,9 @@ class ReplyHandler(Listener):
     """
 
     def __init__(self, url):
-        queue = Queue(Services.CTAG)
+        transport = Transport(url)
+        queue = transport.queue(Services.CTAG)
+        queue.declare(url)
         self.consumer = ReplyConsumer(queue, url=url)
 
     def start(self, watchdog):
