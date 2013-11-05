@@ -131,6 +131,7 @@ class HeartbeatListener(Consumer):
 
     def dispatch(self, envelope):
         try:
+            log.debug(envelope)
             self.__update(envelope.heartbeat)
         except:
             log.error(envelope, exec_info=True)
@@ -157,8 +158,7 @@ class ReplyHandler(Listener):
     """
 
     def __init__(self, url):
-        transport = Transport(url)
-        queue = transport.queue(Services.CTAG)
+        queue = Queue(Services.CTAG)
         queue.declare(url)
         self.consumer = ReplyConsumer(queue, url=url)
 

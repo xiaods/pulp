@@ -163,7 +163,7 @@ class Heartbeat:
         should be expected.
         """
         exchange = Exchange.topic()
-        destination = Destination(exchange.name, 'heartbeat')
+        destination = Destination('heartbeat', exchange=exchange.name)
         delay = int(cfg.heartbeat.seconds)
         bundle = ConsumerX509Bundle()
         consumer_id = bundle.cn()
