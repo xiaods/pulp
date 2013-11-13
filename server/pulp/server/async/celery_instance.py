@@ -25,7 +25,7 @@ from pulp.server.config import config
 
 
 broker_url = config.get('tasks', 'broker_url')
-celery = Celery('tasks', backend='amqp', broker=broker_url)
+celery = Celery('tasks', broker=broker_url)
 
 
 RESOURCE_MANAGER_QUEUE = 'resource_manager'
