@@ -76,6 +76,33 @@ class FailureWatcher(object):
         """
         return self._watches.pop(task_id, self._default_pop)[1:]
 
+    def monitor_events(self):
+        with app.connection() as connection:
+            recv = app.events.Receiver(connection, handlers={
+                'task-failed': self.handle_failed_task,
+                'task-succeeded': self.handle_succeeded_task,
+                })
+            recv.capture(limit=None, timeout=None, wakeup=False)
+
+    def handle_succeeded_task(self, event):
+        event_id = event['uuid']
+        schedule_id, has_failure = self.pop(event_id)
+        if schedule_id:
+            return_value = AsyncResult(event_id, app=app).result
+            if isinstance(return_value, AsyncResult):
+                _logger.debug('watching child event %s for failure' % return_value.id)
+                self.add(return_value.id, schedule_id, has_failure)
+            elif has_failure:
+                _logger.info('resetting consecutive failure count for schedule %s' % schedule_id)
+                utils.reset_failure_count(schedule_id)
+
+    def handle_failed_task(self, event):
+        schedule_id, has_failure = self.pop(event['uuid'])
+        if schedule_id:
+            _logger.info('incrementing consecutive failure count for schedule %s' % schedule_id)
+            utils.increment_failure_count(schedule_id)
+
+
 
 class Scheduler(beat.Scheduler):
     Entry = ScheduleEntry
@@ -89,19 +116,11 @@ class Scheduler(beat.Scheduler):
         self._schedule = None
         self._failure_watcher = FailureWatcher()
         # start monitoring events in a thread
-        thread = threading.Thread(target=self.monitor_events)
+        thread = threading.Thread(target=self._failure_watcher.monitor_events)
         thread.daemon = True
 
         super(Scheduler, self).__init__(*args, **kwargs)
         thread.start()
-
-    def monitor_events(self):
-        with app.connection() as connection:
-            recv = app.events.Receiver(connection, handlers={
-                'task-failed': self.handle_failed_task,
-                'task-succeeded': self.handle_succeeded_task,
-            })
-            recv.capture(limit=None, timeout=None, wakeup=False)
 
     def tick(self):
         ret = super(Scheduler, self).tick()
@@ -188,23 +207,3 @@ class Scheduler(beat.Scheduler):
             self._failure_watcher.add(result.id, entry.name, has_failure)
             _logger.debug('watching task %s' % result.id)
         return result
-
-    def handle_succeeded_task(self, event):
-        event_id = event['uuid']
-        schedule_id, has_failure = self._failure_watcher.pop(event_id)
-        if schedule_id:
-            return_value = AsyncResult(event_id, app=app).result
-            if isinstance(return_value, AsyncResult):
-                _logger.debug('watching child event %s for failure' % return_value.id)
-                self._failure_watcher.add(return_value.id, schedule_id, has_failure)
-            elif has_failure:
-                _logger.info('resetting consecutive failure count for schedule %s' % schedule_id)
-                utils.reset_failure_count(schedule_id)
-
-    def handle_failed_task(self, event):
-        schedule_id, has_failure = self._failure_watcher.pop(event['uuid'])
-        if schedule_id:
-            _logger.info('incrementing consecutive failure count for schedule %s' % schedule_id)
-            utils.increment_failure_count(schedule_id)
-
-
