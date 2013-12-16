@@ -66,14 +66,7 @@ def publish(repo_id, distributor_id, overrides=None):
     return publish_manager.publish.apply_async_with_reservation(
         resource_id, tags=tags, kwargs=kwargs)
 
+
 @celery.task
 def sync_with_auto_publish(repo_id, overrides=None):
-    logger.debug('queuing dumb task')
-    dumb_task.apply_async()
-    logger.debug('done queuing dumb task')
-
-
-@celery.task(base=Task)
-def dumb_task():
-    logger.debug('dumb task is about to do something dumb')
-    raise ValueError('you suck')
+    pass

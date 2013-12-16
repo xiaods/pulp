@@ -30,20 +30,50 @@ _logger = logging.getLogger(__name__)
 class FailureWatcher(object):
     _default_pop = (None, None, None)
     WatchedTask = namedtuple('WatchedTask', ['timestamp', 'schedule_id', 'has_failure'])
+    # how long we will track a task from the time it gets queued.
     ttl = 60*60*4  # 4 hours
 
     def __init__(self):
         self._watches = {}
 
     def trim(self):
+        """
+        Removes tasks from our collections of tasks that are being watched for
+        failure by looking for tasks that have been in the collection for more
+        than self.ttl seconds.
+        """
         oldest_allowed = int(time.time()) - self.ttl
-        for task_id in (task_id for task_id, watch in self._watches.items() if watch.timestamp < oldest_allowed):
+        for task_id in (task_id for task_id, watch in self._watches.items()
+                        if watch.timestamp < oldest_allowed):
             self._watches.pop(task_id, None)
 
     def add(self, task_id, schedule_id, has_failure):
+        """
+        Add a task to our collection of tasks to watch.
+
+        :param task_id:     UUID of the task that was just queued
+        :type  task_id:     basestring
+        :param schedule_id: ID of the schedule that caused the task to be queued
+        :type  schedule_id: basestring
+        :param has_failure: True iff the schedule in question has at least one
+                            consecutive failure currently recorded. If True, the
+                            success handler can ignore this task.
+        :type  has_failure: bool
+        """
         self._watches[task_id] = self.WatchedTask(int(time.time()), schedule_id, has_failure)
 
     def pop(self, task_id):
+        """
+        removes the entry for the requested task_id and returns its schedule_id
+        and has_failure attributes
+
+        :param task_id:     UUID of a task
+        :type  task_id:     basestring
+        :return:            2-item list of [schedule_id, has_failure], where
+                            schedule_id and has_failure will be None if the
+                            task_id is not found.
+        :rtype:             [basestring, bool]
+        """
         return self._watches.pop(task_id, self._default_pop)[1:]
 
 
